@@ -1,12 +1,6 @@
 #python
 # -*- coding:utf-8 -*-
-# Time-Stamp :
-"""
-differences of final and final2
-In final2:
- - convert rad befor calculation
- - consider Julian Century Value
-"""
+# Time-stamp: <Thu Jul 09 11:31:23 JST 2015>
 
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -17,6 +11,16 @@ import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import lines
+
+
+### USER PARAMETER ###
+DRAW_INNER = True  # plot inner of Mars orbit / plot all planets Orbit
+target_date = datetime.date(2015, 9, 15) # plot position on target_date
+
+
+theta, phi = 0, 0
+mag = 1.                        # magnification
+eve_x, eve_y = 0, 0
 
 
 """
@@ -69,14 +73,9 @@ Pluto    39.48686035      0.24885238     17.14104260      238.96535011    224.09
 ------------------------------------------------------------------------------------------------------
 """
 
-
+# global variables
 fig = None
 ax  = None
-
-theta, phi = 0, 0
-mag = 1.                        # magnification
-eve_x, eve_y = 0, 0
-DRAW_INNER = False
 
 class Planet:
     def __init__(self, name):
@@ -543,19 +542,19 @@ def plotVEquinox(day):
 
     earth.plotVE()
 
-def distance2point(a, b):       # a,b : numpy array([x1,y1], [x2,y2])
+def distance2point(a, b):       # a,b: numpy array([x1,y1], [x2,y2])
     global mag
     u = b - a
     return np.linalg.norm(u * mag)
 
-def angle2vector(a, b):           # a, b vector (numpy)
+def angle2vector(a, b):           # a,b: vector (numpy)
     cos_ang = np.dot(a,b) / (np.linalg.norm(a) * np.linalg.norm(b))
     ang = math.acos(cos_ang)
     return ang                  # radian
 
 def drawBase():
     global eve_x, eve_y
-    eve = Planet("Earth")       # Earth on Vernal Equinox day
+    eve = Planet("Earth")       # Earth on Vernal Equinox Day
     jdeve = toJD(datetime.date(2014, 3, 21)) - 2451545.0 # J2000 not used
     eve.calc(jdeve)
     eve.plotBase()
@@ -564,32 +563,23 @@ def drawBase():
     print(eve_x)
     print(eve_y)
 
-
 def main():
-
     global theta, phi, mag, DRAW_INNER
     theta, phi = 6, -8
     mag = 0.245 / 1.
-
-    DRAW_INNER = True           # plot inner of Mars orbit / plot all planets Orbit (each planet orbits inner of Mars ortbit is too small)
-
-    target_day = datetime.date(2015, 3, 15) # plot position on target_date
 
     drawOrbit()                 # Orbit draw
 
     plt.plot(0, 0, "ro")
     drawBase()
 
-    plotPlanets(target_day) # plot planet on target day(arg[datetime type])
+    plotPlanets(target_date) # plot planet on target day(arg[datetime type])
 
-
-    plt.title(target_day.strftime("%Y-%m-%d"), fontsize=20)
+    plt.title(target_date.strftime("%Y-%m-%d"), fontsize=20)
     plt.xlabel("$x$", fontsize=20)
     plt.ylabel("$y$", fontsize=20)
-    plt.savefig('x-y.png', format='png')
-    # plt.savefig('{}.png'.format(target_day.strftime("%Y%m%d")), format='png')
-    # plt.savefig('date-r.png', format='png')
-    # print(cnt)
+    inout = lambda x: "inner" if x else "outer"
+    plt.savefig(target_date.strftime("%Y-%m-%d") + inout(DRAW_INNER) + '.png', format='png')
     print("end")
 
 
