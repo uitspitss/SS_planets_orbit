@@ -1,6 +1,6 @@
 #python
 # -*- coding:utf-8 -*-
-# Time-stamp: <Thu Nov 05 11:44:22 JST 2015>
+# Time-stamp: <Thu Nov 05 17:19:13 JST 2015>
 
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -390,9 +390,9 @@ class HAYA2:
 
 def plotHaya2(day):
     haya2 = HAYA2()
-    for h in haya2.lst[335:395]:
+    for h in haya2.lst[0:365]:
         plt.plot(h['px'], h['py'], "k.", ms=1)
-    for h in haya2.lst[335:395:5]:
+    for h in haya2.lst[0:365:30]:
         plt.plot(h['px'], h['py'], "c.")
         plt.text(h['px'], h['py'], "${date:%m/%d}^{{\mathrm{{'}}{date:%y}}}$".format(**h),
                  ha='center', va='bottom', fontsize=6, color='blue')
@@ -420,9 +420,9 @@ class JU3:
 
 def plot1999JU3(day):
     ju = JU3()
-    for p in ju.lst[10:365]:
+    for p in ju.lst[0:365]:
         plt.plot(p['px'], p['py'], "k.", ms=1)
-    for p in ju.lst[336:398:5]:
+    for p in ju.lst[0:365:30]:
         plt.plot(p['px'], p['py'], "cH")
         plt.text(p['px'], p['py'], "${date:%m/%d}^{{\mathrm{{'}}{date:%y}}}$".format(**p),
                  ha='center', va='bottom', fontsize=3, color='green')
@@ -556,7 +556,7 @@ def drawOrbit():
     if DRAW_INNER:
         # plt.xlim(min(Jupiter.xl), max(Jupiter.xl))
         # plt.ylim(min(Jupiter.yl), max(Jupiter.yl))
-        plt.axis([0, 0.5, 0.5, 1])
+        plt.axis([-2, 2, -2, 2])
         # plt.xlim(min(-2), max(2))
         # plt.ylim(min(-2), max(Mars.yl))
 
@@ -574,7 +574,7 @@ def drawOrbit():
 def plotPlanetsMulti():
     begin_date = datetime.date(2015,11,3)
     end_date = datetime.date(2016,1,3)
-    days_interval = 5                   # interval days
+    days_interval = 30                   # interval days
 
     sui = Planet("Mercury")
     kin = Planet("Venus")
@@ -618,9 +618,9 @@ def plotPlanetsMulti():
     mei.plot3(daylist)
 
 def plotEarthMulti():
-    begin_date = datetime.date(2015,11,3)
-    end_date = datetime.date(2016,1,3)
-    days_interval = 5                   # interval days
+    begin_date = datetime.date(2014,12,3)
+    end_date = datetime.date(2015,12,3)
+    days_interval = 30                   # interval days
 
     chi = Planet("Earth")
 
@@ -754,11 +754,11 @@ def main():
 
     plotHaya2(target_date)
 
-    plt.title(target_date.strftime("Inner Planets + Haya2 every 5 days(20151103-20160103)"), fontsize=20)
+    plt.title(target_date.strftime("Inner Planets + Haya2 every 30 days"), fontsize=20)
     plt.xlabel("$x[\mathrm{au}]$", fontsize=20)
     plt.ylabel("$y[\mathrm{au}]$", fontsize=20)
     # plt.savefig(target_date.strftime("%Y-%m-%d + Haya2") + '.png', format='png', dpi=300)
-    plt.savefig(target_date.strftime("Inner Planets + Haya2 every 5 days(20151103-20160103)") + '.png', format='png', dpi=300)
+    plt.savefig(target_date.strftime("Inner Planets + Haya2 every 30 days") + '.png', format='png', dpi=300)
     print("end")
 
 
