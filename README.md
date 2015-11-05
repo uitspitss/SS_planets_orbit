@@ -11,6 +11,6 @@
 (i.e. install requirements `pip install numpy matplotlib`)
 
 ## Result
-[img1](Haya2pic1.png)
+![img1](Haya2pic1.png)
 
-[img2](Haya2pic2.png)
+![img2](Haya2pic2.png)
