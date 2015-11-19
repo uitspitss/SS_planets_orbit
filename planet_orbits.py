@@ -1,26 +1,12 @@
 #python
 # -*- coding:utf-8 -*-
-# Time-stamp: <Thu Jul 09 11:31:23 JST 2015>
-
-from __future__ import print_function
-from __future__ import unicode_literals
-from __future__ import division
+# Time-stamp: <Thu Nov 19 10:55:33 JST 2015>
 
 import math
 import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import lines
-
-
-### USER PARAMETER ###
-DRAW_INNER = True  # plot inner of Mars orbit / plot all planets Orbit
-target_date = datetime.date(2015, 9, 15) # plot position on target_date
-
-
-theta, phi = 0, 0
-mag = 1.                        # magnification
-eve_x, eve_y = 0, 0
 
 
 """
@@ -73,10 +59,6 @@ Pluto    39.48686035      0.24885238     17.14104260      238.96535011    224.09
 ------------------------------------------------------------------------------------------------------
 """
 
-# global variables
-fig = None
-ax  = None
-
 class Planet:
     def __init__(self, name):
         self.name = name
@@ -85,6 +67,7 @@ class Planet:
         self.zl = []
         self.rl = []
         self.r_xyl = []
+        self.angleEVE = 0
 
         if self.name == "Mercury":
             self.a = 0.38709927
@@ -217,7 +200,7 @@ class Planet:
         self.Omega_dot = math.radians(self.Omega_dot)
 
 
-    def calc(self, jd):
+    def calc(self, jd, params):
         '''
         calculate target planet position
         '''
@@ -230,13 +213,13 @@ class Planet:
         self.Omega = self.Omega0 + self.Omega_dot * T
         self.omega = self.varpi - self.Omega
         self.M = self.L - self.varpi
-        self.E = solveE(self.M, self.e)
+        self.E = self.solveE(self.M, self.e)
 
         x_prime = self.a * (math.cos(self.E) - self.e)
         y_prime = self.b * math.sin(self.E)
         r_prime = math.sqrt(x_prime ** 2 + y_prime ** 2)
 
-        mat = getMatrix(self.I, self.Omega, self.omega)
+        mat = self.getMatrix(self.I, self.Omega, self.omega)
 
         self.x = mat[0][0] * x_prime + mat[0][1] * y_prime
         self.y = mat[1][0] * x_prime + mat[1][1] * y_prime
@@ -245,8 +228,8 @@ class Planet:
         self.r = math.sqrt(self.x*self.x + self.y*self.y + self.z*self.z)
         self.r_xy = math.sqrt(self.x*self.x + self.y*self.y)
 
-        # plot x, y, z pos: px, py, pz
-        self.px, self.py, self.pz = convertCood(self.x, self.y, self.z)
+        # convert x, y, z pos: px, py, pz by theta, phi
+        self.px, self.py, self.pz = self.convertCood(self.x, self.y, self.z, params)
 
         self.xl.append(self.px)
         self.yl.append(self.py)
@@ -255,166 +238,287 @@ class Planet:
 
         self.r_xyl.append(self.r_xy)
 
-    def plot(self):
+
+    def getMatrix(self, I, Omega, omega):
+        # reference at HoshizoraYokochou[http://hoshizora.yokochou.com/calculation/orbit.html]
+        # convert cord.[orbit surface] -> cord.[center of Sun surface]
+
+        cos_I = math.cos(I)
+        sin_I = math.sin(I)
+        cos_Omega = math.cos(Omega)
+        sin_Omega = math.sin(Omega)
+        cos_omega = math.cos(omega)
+        sin_omega = math.sin(omega)
+
+        M11 =  cos_omega * cos_Omega - sin_omega * sin_Omega * cos_I
+        M12 = -sin_omega * cos_Omega - cos_omega * sin_Omega * cos_I
+        M21 =  cos_omega * sin_Omega + sin_omega * cos_Omega * cos_I
+        M22 = -sin_omega * sin_Omega + cos_omega * cos_Omega * cos_I
+        M31 =  sin_omega * sin_I
+        M32 =  cos_omega * sin_I
+
+        return [[M11, M12],
+                [M21, M22],
+                [M31, M32]]
+
+
+    def solveE(self, M, e):
+        count = 1
+        E1 = M
+        while True:
+            # E2 = M + math.degrees(e * math.sin(math.radians(E1)))
+            delta_E = (M - E1 + e * math.sin(E1)) / (1 - e * math.cos(E1))
+            E2 = E1 + delta_E
+            E1 = E2
+
+            if math.fabs(delta_E) < 0.00000001:
+                break
+            if count % 1000 == 0:
+                print("count of solveE: {}".format(count))
+            if count > 10000: exit(0)
+            count += 1
+        return E2
+
+
+    def convertCood(self, x, y, z, params):
+        theta, phi = params['theta'], params['phi']
+        # rotate theta around x-axis
+        _theta = math.radians(theta)
+        x2 = x
+        y2 = y * math.cos(_theta) - z * math.sin(_theta)
+        z2 = y * math.sin(_theta) + z * math.cos(_theta)
+
+        # rotate phi around y-axis
+        _phi = math.radians(phi)
+        x3 = x2 * math.cos(_phi) + z2 * math.sin(_phi)
+        y3 = y2
+        z3 = z2 * math.cos(_phi) - x2 * math.sin(_phi)
+
+        return [x3, y3, z3]
+
+
+    def toJD(self, da):
+        y = da.year
+        m = da.month
+
+        if m < 3:
+            m = m + 12
+            y = y - 1
+
+        jd_year = int(365.25 * y) - int(y/100) + int(y/400) + 1721088.5
+        jd_day = int(30.59 * (m -2)) + int(da.day)
+        jd = jd_year + jd_day
+        return jd
+
+    def drawOrbit(self, ax, params):
         '''
         plot line of target planet (for planet orbit)
         '''
-        plt.plot(self.xl, self.yl, '-',
-                 color = {'Mercury': 'b',
-                          'Venus'  : '#ffd700',
-                          'Earth'  : 'g',
-                          'Mars'   : 'r',
-                          'Jupiter': '#8b4512',
-                          'Saturn' : '#deb887',
-                          'Uranus' : '#40e0d0',
-                          'Neptune': '#00bfff',
-                          'Pluto'  : 'k'
-                         }[self.name]
-        )
+        self.xl = []
+        self.yl = []
+        self.zl = []
+        self.rl = []
+        self.r_xyl = []
 
-    def qQ(self):
+        begin_date = datetime.date(1800,1,1)
+        end_date = datetime.date(2050,1,1)
+        days_interval = 30                   # interval days
+
+        count = 0
+        while True:
+            day = begin_date + datetime.timedelta(days = count * days_interval)
+            if (end_date - day).days < 0: break
+            jd = self.toJD(day) - 2451545.0 # J2000
+            self.calc(jd, params)
+            count += 1
+
+        ax.plot(self.xl, self.yl, '-', lw=0.5,
+                color = {'Mercury': 'b',
+                         'Venus'  : '#ffd700',
+                         'Earth'  : 'g',
+                         'Mars'   : 'r',
+                         'Jupiter': '#8b4512',
+                         'Saturn' : '#deb887',
+                         'Uranus' : '#40e0d0',
+                         'Neptune': '#00bfff',
+                         'Pluto'  : 'k'
+                        }[self.name])
+
+
+    def plotPoint(self, ax, params, begin_date, end_date = None, days_interval = None):
+        '''
+        plot point of target planet on target date
+        '''
+        self.xl = []
+        self.yl = []
+        self.zl = []
+        self.rl = []
+        self.r_xyl = []
+
+        end_date = begin_date if end_date==None else end_date
+        days_interval = 1 if days_interval==None else days_interval
+
+        count = 0
+        while True:
+            day = begin_date + datetime.timedelta(days = count * days_interval)
+            if (end_date - day).days < 0: break
+            jd = self.toJD(day) - 2451545.0 # J2000
+            self.calc(jd, params)
+            count += 1
+
+        ax.plot(self.xl, self.yl, '*', ms=18,
+                color = {'Mercury': 'b',
+                         'Venus'  : '#ffd700',
+                         'Earth'  : 'g',
+                         'Mars'   : 'r',
+                         'Jupiter': '#8b4513',
+                         'Saturn' : '#deb887',
+                         'Uranus' : '#40e0d0',
+                         'Neptune': '#00bfff',
+                         'Pluto'  : 'gray'
+                     }[self.name])
+
+    def textDate(self, ax, params, begin_date, end_date = None, days_interval = None):
+        '''
+        caption text of planets
+        '''
+        self.xl = []
+        self.yl = []
+        self.zl = []
+        self.rl = []
+        self.r_xyl = []
+        dl = []
+
+        end_date = begin_date if end_date==None else end_date
+        days_interval = 1 if days_interval==None else days_interval
+
+        count = 0
+        while True:
+            day = begin_date + datetime.timedelta(days = count * days_interval)
+            if (end_date - day).days < 0: break
+            jd = self.toJD(day) - 2451545.0 # J2000
+            self.calc(jd, params)
+            dl.append(day)
+            count += 1
+
+        for i in range(len(dl)):
+            ax.text(self.xl[i], self.yl[i],
+                    "${0:%m/%d}^{{\mathrm{{'}}{0:%y}}}$".format(dl[i]), fontsize=6, ha='left', va='top')
+
+
+    def calcEVE(self, ax, params):
+        '''
+        for exhibition function
+        '''
+        self.xl = []
+        self.yl = []
+        self.zl = []
+        self.rl = []
+        self.r_xyl = []
+
+        jd = self.toJD(params['EVEday']) - 2451545.0 # J2000
+        self.calc(jd, params)
+
+        return [self.xl, self.yl]
+
+
+    def plotPointOnEVE(self, ax, params):
+        '''
+        for exhibition function
+        '''
+        ax.plot(params['EVE'][0], params['EVE'][1], 'D',
+                 color = {'Earth'  : '#00fa9a'}[self.name])
+
+
+    def textAngleEVE(self, ax, params, begin_date, end_date = None, days_interval = None):
+        '''
+        for exhibition function
+        angle of Vernal Equinox day's Earth positon <-> Sun position <-> Planet position
+        '''
+        self.xl = []
+        self.yl = []
+        self.zl = []
+        self.rl = []
+        self.r_xyl = []
+
+        end_date = begin_date if end_date==None else end_date
+        days_interval = 1 if days_interval==None else days_interval
+
+        count = 0
+        while True:
+            day = begin_date + datetime.timedelta(days = count * days_interval)
+            if (end_date - day).days < 0: break
+            jd = self.toJD(day) - 2451545.0 # J2000
+            self.calc(jd, params)
+            count += 1
+
+        for i in range(len(self.xl)):
+            a = np.array([self.xl[i], self.yl[i]])
+            b = np.array(params['EVE'])
+
+            ang = self.angle2vector(a, b) # ang[radian]
+            ang_deg = math.degrees(ang)
+
+            print("{:s} angle(x-y): {:.3f}".format(self.name, ang_deg))
+            ax.text(self.xl[i], self.yl[i], "{:.1f}".format(ang_deg), fontsize=6, ha='left', va='bottom')
+
+
+    '''
+    misc functions
+    '''
+    def printDistanceQq(self):
         print("-------------------")
         print(self.name)
         print(" perihelion distance[q] : {:.3f}\n aperihelion distance[Q]: {:.3f}".format(min(self.rl), max(self.rl)))
         print("-------------------")
 
-    def plot2(self):
-        '''
-        plot point of target planet on target date
-        '''
-        plt.plot(self.xl, self.yl, '*',
-                 color = {'Mercury': 'b',
-                          'Venus'  : '#ffd700',
-                          'Earth'  : 'g',
-                          'Mars'   : 'r',
-                          'Jupiter': '#8b4513',
-                          'Saturn' : '#deb887',
-                          'Uranus' : '#40e0d0',
-                          'Neptune': '#00bfff',
-                          'Pluto'  : 'k'
-                         }[self.name]
-        )
-
-    def plotBase(self):
-        ''''''
-        plt.plot(self.xl, self.yl, 'D',
-                 color = {'Mercury': 'b',
-                          'Earth'  : '#00fa9a',
-                          'Pluto'  : '#ff1493'
-                         }[self.name]
-        )
-
-
-    def plotVE(self):           # plot line between Earth and Sun
-        plt.plot(self.xl, self.yl, 'x', color='g')
-
-        line = lines.Line2D([0,self.x], [0, self.y])
-        ax.add_line(line)
-
-    def distance(self):
+    def printDistance(self):
         print("*********")
         print(self.name)
         print(" distance from Sun: {:.3f}".format(self.r))
         print("*********")
 
-    def distanceXY(self):
-        print("{:s} distance from Sun(x-y): {:.3f}".format(self.name, distance2point(np.array([self.px, self.py]), np.array([0, 0]))))
+    def printDistanceXY(self):
+        print("{:s} distance from Sun(x-y): {:.3f}".format(self.name, self.distance2point(np.array([self.px, self.py]), np.array([0, 0]))))
 
-    def angleEVE(self):         # angle Earth Vernal Equinox day position - Sun position and Planet position - Sun position
-        global eve_x, eve_y
-        a = np.array([self.x, self.y])
-        b = np.array([eve_x, eve_y])
+    def distance2point(self, a, b):       # a,b: numpy array([x1,y1], [x2,y2])
+        global mag
+        u = b - a
+        return np.linalg.norm(u * mag)
 
-        ang = angle2vector(a, b) # ang[radian]
-        ang_deg = math.degrees(ang)
-
-        print("{:s} angle(x-y): {:.3f}".format(self.name, ang_deg))
-        plt.text(self.px, self.py, "{:.1f}".format(ang_deg))
-
-def convertCood(x, y, z):
-    global theta, phi
-    # rotation theta around x-axis
-    _theta = math.radians(theta)
-    x2 = x
-    y2 = y * math.cos(_theta) - z * math.sin(_theta)
-    z2 = y * math.sin(_theta) + z * math.cos(_theta)
-
-    # rotation phi around y-axis
-    _phi = math.radians(phi)
-    x3 = x2 * math.cos(_phi) + z2 * math.sin(_phi)
-    y3 = y2
-    z3 = z2 * math.cos(_phi) - x2 * math.sin(_phi)
-
-    return [x3, y3, z3]
+    def angle2vector(self, a, b):           # a,b: vector (numpy)
+        cos_ang = np.dot(a,b) / (np.linalg.norm(a) * np.linalg.norm(b))
+        ang = math.acos(cos_ang)
+        return ang                  # radian
 
 
-def getMatrix(I, Omega, omega):
-    # from HoshizoraYokochou[http://hoshizora.yokochou.com/calculation/orbit.html]
-    # convert cord.[orbit surface] -> cord.[center of Sun surface]
+def main():
+    params = {'inner': None,
+              'theta': 6,
+              'phi': -8,
+              'mag': 0.245/1.,
+              'EVE': [0, 0],
+              'EVEday': datetime.date(2014, 3, 21)}
 
-    cos_I = math.cos(I)
-    sin_I = math.sin(I)
-    cos_Omega = math.cos(Omega)
-    sin_Omega = math.sin(Omega)
-    cos_omega = math.cos(omega)
-    sin_omega = math.sin(omega)
+    target_date = datetime.date(2015, 12, 3) # plot position on target_date
 
-    M11 =  cos_omega * cos_Omega - sin_omega * sin_Omega * cos_I
-    M12 = -sin_omega * cos_Omega - cos_omega * sin_Omega * cos_I
-    M21 =  cos_omega * sin_Omega + sin_omega * cos_Omega * cos_I
-    M22 = -sin_omega * sin_Omega + cos_omega * cos_Omega * cos_I
-    M31 =  sin_omega * sin_I
-    M32 =  cos_omega * sin_I
+    ####### INNER ########
+    params['inner'] = True
 
-    return [[M11, M12],
-            [M21, M22],
-            [M31, M32]]
+    fig = plt.figure(figsize=(10,5))
+    ax  = fig.add_subplot(121)
+    ax.axis('equal')
+    if params['inner']:
+        ax.axis([-2,2,-2,2])
 
+    ax.plot(0, 0, "ro") # SUN
 
-def solveE(M, e):
-    count = 1
-    E1 = M
-    while True:
-        # E2 = M + math.degrees(e * math.sin(math.radians(E1)))
-        delta_E = (M - E1 + e * math.sin(E1)) / (1 - e * math.cos(E1))
-        E2 = E1 + delta_E
-        E1 = E2
-
-        if math.fabs(delta_E) < 0.00000001:
-            # print(count)
-            break
-        if count % 1000 == 0:
-            print("count of solveE: {}".format(count))
-        if count > 10000: exit(0)
-        count += 1
-    return E2
-
-
-def toJD(da):
-    y = da.year
-    m = da.month
-
-    if m < 3:
-        m = m + 12
-        y = y - 1
-
-    jd_year = int(365.25 * y) - int(y/100) + int(y/400) + 1721088.5
-    jd_day = int(30.59 * (m -2)) + int(da.day)
-    jd = jd_year + jd_day
-    return jd
-
-def drawOrbit():
-    global fig, ax
-    begin_date = datetime.date(1800,1,1)
-    end_date = datetime.date(2050,1,1)
-    days_inteval = 30                   # interval days
-
-    fig = plt.figure(figsize=(10,10))
-    ax  = fig.add_subplot(111)
+    Earth = Planet("Earth")
+    params['EVE'] = Earth.calcEVE(ax, params)
+    Earth.plotPointOnEVE(ax, params) # plot Equinox of Earth J2000
 
     Mercury = Planet("Mercury")
     Venus = Planet("Venus")
-    Earth = Planet("Earth")
     Mars = Planet("Mars")
     Jupiter = Planet("Jupiter")
     Saturn = Planet("Saturn")
@@ -422,164 +526,105 @@ def drawOrbit():
     Neptune = Planet("Neptune")
     Pluto = Planet("Pluto")
 
+    Mercury.drawOrbit(ax, params)
+    Venus.drawOrbit(ax, params)
+    Earth.drawOrbit(ax, params)
+    Mars.drawOrbit(ax, params)
+    Jupiter.drawOrbit(ax, params)
+    # Saturn.drawOrbit(ax, params)
+    # Uranus.drawOrbit(ax, params)
+    # Neptune.drawOrbit(ax, params)
+    # Pluto.drawOrbit(ax, params)
 
-    count = 0
-    while True:
-        day = begin_date + datetime.timedelta(days = count * days_inteval)
-        jd = toJD(day) - 2451545.0 # J2000
+    Earth.plotPointOnEVE(ax, params)
 
+    Mercury.plotPoint(ax, params, target_date)
+    Venus.plotPoint(ax, params, target_date)
+    Earth.plotPoint(ax, params, target_date)
+    Mars.plotPoint(ax, params, target_date)
+    Jupiter.plotPoint(ax, params, target_date)
+    # Saturn.plotPoint(ax, params, target_date)
+    # Uranus.plotPoint(ax, params, target_date)
+    # Neptune.plotPoint(ax, params, target_date)
+    # Pluto.plotPoint(ax, params, target_date)
 
-        Mercury.calc(jd)
-        Venus.calc(jd)
-        Earth.calc(jd)
-        Mars.calc(jd)
-        Jupiter.calc(jd)
-        Saturn.calc(jd)
-        Uranus.calc(jd)
-        Neptune.calc(jd)
-        Pluto.calc(jd)
+    Mercury.textDate(ax, params, target_date)
+    Venus.textDate(ax, params, target_date)
+    Earth.textDate(ax, params, target_date)
+    Mars.textDate(ax, params, target_date)
+    Jupiter.textDate(ax, params, target_date)
+    # Saturn.textDateText(ax, params, target_date)
+    # Uranus.textDateText(ax, params, target_date)
+    # Neptune.textDateText(ax, params, target_date)
+    # Pluto.textDateText(ax, params, target_date)
 
-        if (end_date - day).days < 0: break
-        count += 1
-
-    Mercury.plot()
-    Venus.plot()
-    Earth.plot()
-    Mars.plot()
-    Jupiter.plot()
-    Saturn.plot()
-    Uranus.plot()
-    Neptune.plot()
-    Pluto.plot()
-
-    plt.axis('equal')
-    global DRAW_INNER
-    # DRAW_INNER = False
-    # DRAW_INNER = True
-    if DRAW_INNER:
-        plt.xlim(min(Jupiter.xl), max(Jupiter.xl))
-        plt.ylim(min(Jupiter.yl), max(Jupiter.yl))
-
-    Mercury.qQ()
-    Venus.qQ()
-    Earth.qQ()
-    Mars.qQ()
-    Jupiter.qQ()
-    Saturn.qQ()
-    Uranus.qQ()
-    Neptune.qQ()
-    Pluto.qQ()
+    Mercury.textAngleEVE(ax, params, target_date)
+    Venus.textAngleEVE(ax, params, target_date)
+    Earth.textAngleEVE(ax, params, target_date)
+    Mars.textAngleEVE(ax, params, target_date)
+    Jupiter.textAngleEVE(ax, params, target_date)
+    # Saturn.textAngleEVE(ax, params, target_date)
+    # Uranus.textAngleEVE(ax, params, target_date)
+    # Neptune.textAngleEVE(ax, params, target_date)
+    # Pluto.textAngleEVE(ax, params, target_date)
 
 
-def plotPlanets(day):
-    mer = Planet("Mercury")
-    ven = Planet("Venus")
-    ear = Planet("Earth")
-    mar = Planet("Mars")
-    jup = Planet("Jupiter")
-    sat = Planet("Saturn")
-    ura = Planet("Uranus")
-    nep = Planet("Neptune")
-    plu = Planet("Pluto")
+    ####### OUTER ########
+    params['inner'] = False
 
-    jd = toJD(day) - 2451545.0 # J2000 not used
+    ax  = fig.add_subplot(122)
+    ax.axis('equal')
+    if params['inner']:
+        ax.axis([-2,2,-2,2])
+    else:
+        ax.axis([-50,50,-50,50])
 
-    mer.calc(jd)
-    ven.calc(jd)
-    ear.calc(jd)
-    mar.calc(jd)
-    jup.calc(jd)
-    sat.calc(jd)
-    ura.calc(jd)
-    nep.calc(jd)
-    plu.calc(jd)
+    ax.plot(0, 0, "ro") # SUN
 
-    mer.plot2()
-    ven.plot2()
-    ear.plot2()
-    mar.plot2()
-    jup.plot2()
-    sat.plot2()
-    ura.plot2()
-    nep.plot2()
-    plu.plot2()
+    # Mercury.drawOrbit(ax, params)
+    # Venus.drawOrbit(ax, params)
+    # Earth.drawOrbit(ax, params)
+    # Mars.drawOrbit(ax, params)
+    Jupiter.drawOrbit(ax, params)
+    Saturn.drawOrbit(ax, params)
+    Uranus.drawOrbit(ax, params)
+    Neptune.drawOrbit(ax, params)
+    Pluto.drawOrbit(ax, params)
 
+    Earth.plotPointOnEVE(ax, params)
 
-    print("-----------------------")
+    # Mercury.plotPoint(ax, params, target_date)
+    # Venus.plotPoint(ax, params, target_date)
+    # Earth.plotPoint(ax, params)
+    # Mars.plotPoint(ax, params, target_date)
+    Jupiter.plotPoint(ax, params, target_date)
+    Saturn.plotPoint(ax, params, target_date)
+    Uranus.plotPoint(ax, params, target_date)
+    Neptune.plotPoint(ax, params, target_date)
+    Pluto.plotPoint(ax, params, target_date)
 
-    mer.distanceXY()
-    ven.distanceXY()
-    ear.distanceXY()
-    mar.distanceXY()
-    jup.distanceXY()
-    sat.distanceXY()
-    ura.distanceXY()
-    nep.distanceXY()
-    plu.distanceXY()
+    # Mercury.textDateText(ax, params, target_date)
+    # Venus.textDateText(ax, params, target_date)
+    # Earth.textDateText(ax, params)
+    # Mars.textDateText(ax, params, target_date)
+    Jupiter.textDate(ax, params, target_date)
+    Saturn.textDate(ax, params, target_date)
+    Uranus.textDate(ax, params, target_date)
+    Neptune.textDate(ax, params, target_date)
+    Pluto.textDate(ax, params, target_date)
 
-    # nep.distance()
-    # plu.distance()
+    # Mercury.textAngleEVE(ax, params, target_date)
+    # Venus.textAngleEVE(ax, params, target_date)
+    # Earth.textAngleEVE(ax, params, target_date)
+    # Mars.textAngleEVE(ax, params, target_date)
+    Jupiter.textAngleEVE(ax, params, target_date)
+    Saturn.textAngleEVE(ax, params, target_date)
+    Uranus.textAngleEVE(ax, params, target_date)
+    Neptune.textAngleEVE(ax, params, target_date)
+    Pluto.textAngleEVE(ax, params, target_date)
 
-    print("-----------------------")
+    fig.savefig("Planets on {0:%Y-%m-%d}.png".format(target_date), dpi=300)
 
-    mer.angleEVE()
-    ven.angleEVE()
-    ear.angleEVE()
-    mar.angleEVE()
-    jup.angleEVE()
-    sat.angleEVE()
-    ura.angleEVE()
-    nep.angleEVE()
-    plu.angleEVE()
-
-
-def plotVEquinox(day):
-    earth = Planet("Earth")
-
-    jd = toJD(day) - 2451545.0 # J2000 not used
-
-    earth.calc(jd)
-
-    earth.plotVE()
-
-def distance2point(a, b):       # a,b: numpy array([x1,y1], [x2,y2])
-    global mag
-    u = b - a
-    return np.linalg.norm(u * mag)
-
-def angle2vector(a, b):           # a,b: vector (numpy)
-    cos_ang = np.dot(a,b) / (np.linalg.norm(a) * np.linalg.norm(b))
-    ang = math.acos(cos_ang)
-    return ang                  # radian
-
-def drawBase():
-    global eve_x, eve_y
-    eve = Planet("Earth")       # Earth on Vernal Equinox Day
-    jdeve = toJD(datetime.date(2014, 3, 21)) - 2451545.0 # J2000 not used
-    eve.calc(jdeve)
-    eve.plotBase()
-
-    eve_x, eve_y = eve.px, eve.py # eve position on plot
-    print(eve_x)
-    print(eve_y)
-
-def main():
-    global theta, phi, mag, DRAW_INNER
-    theta, phi = 6, -8
-    mag = 0.245 / 1.
-
-    drawOrbit()                 # Orbit draw
-
-    plt.plot(0, 0, "ro")
-    drawBase()
-
-    plotPlanets(target_date) # plot planet on target day(arg[datetime type])
-
-    plt.title(target_date.strftime("%Y-%m-%d"), fontsize=20)
-    plt.xlabel("$x$", fontsize=20)
-    plt.ylabel("$y$", fontsize=20)
-    inout = lambda x: "inner" if x else "outer"
-    plt.savefig(target_date.strftime("%Y-%m-%d") + inout(DRAW_INNER) + '.png', format='png')
     print("end")
 
 
