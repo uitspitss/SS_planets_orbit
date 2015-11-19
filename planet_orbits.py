@@ -1,6 +1,6 @@
 #python
 # -*- coding:utf-8 -*-
-# Time-stamp: <Thu Nov 19 10:55:33 JST 2015>
+# Time-stamp: <Thu Nov 19 20:36:48 東京 (標準時) 2015>
 
 import math
 import datetime
@@ -492,6 +492,151 @@ class Planet:
         return ang                  # radian
 
 
+class JAXA(Planet):
+    def __init__(self, name, data_file):
+        self.name = name
+
+        if self.name == "Hayabusa2":
+            self.data = []
+            h2list = [x.strip() for x in open(data_file,'r',encoding='utf-8').readlines()][51:]
+            for line in h2list:
+                _d = {}
+                # _d['date'] = line[0:10].replace("/", "") # target date
+                _date = datetime.datetime.strptime(line[0:19], "%Y/%m/%d.%H:%M:%S")
+                _d['date'] = datetime.date(_date.year, _date.month, _date.day) # date type
+                _d['lp']   = int(line[22:26])          # L+ [days]
+                _d['x']  = float(line[29:38])        # X pos. [au]
+                _d['y']  = float(line[39:48])        # Y pos. [au]
+                _d['z']  = float(line[49:58])        # Z pos. [au]
+                _d['ex'] = float(line[59:68])
+                _d['ey'] = float(line[69:78])
+                _d['ez'] = float(line[79:88])
+                _d['rs'] = float(line[122:129])      # distance of Sun-Haya2 [10**4 km]
+                _d['re'] = float(line[133:140])      # distance of Earth-Haya2 [10**4 km]
+                _d['ra'] = float(line[144:151])      # distance of 1999JU3-Haya2 [10**4 km]
+                _d['vs']  = float(line[154:159])     # velocity of Haya2 on Sun [km/sec]
+                _d['ve']  = float(line[162:167])     # velocity of Haya2 on Earth [km/sec]
+                _d['alpha'] = float(line[169:176])   # ra [deg]
+                _d['delta'] = float(line[179:185])   # dec [deg]
+                _d['Dflt']  = float(line[186:194])   # distance of fling [10**4 km]
+
+                # _d['px'], _d['py'], _d['pz'] = convertCood(_d['x'], _d['y'], _d['z'])
+
+                self.data.append(_d)
+
+        if self.name == "Ryugu":
+            self.data = []
+            h2list = [x.strip() for x in open(data_file,'r',encoding='utf-8').readlines()][51:]
+            for line in h2list:
+                _d = {}
+                # _d['date'] = line[0:10].replace("/", "") # target date
+                _date = datetime.datetime.strptime(line[0:19], "%Y/%m/%d.%H:%M:%S")
+                _d['date'] = datetime.date(_date.year, _date.month, _date.day) # date type
+                _d['lp']   = int(line[22:26])          # L+ [days]
+                _d['x']  = float(line[89:98])        # X pos. [au]
+                _d['y']  = float(line[99:108])        # Y pos. [au]
+                _d['z']  = float(line[109:118])        # Z pos. [au]
+                _d['ra'] = float(line[144:151])      # distance of 1999JU3-Haya2 [10**4 km]
+
+                # _d['px'], _d['py'], _d['pz'] = convertCood(_d['x'], _d['y'], _d['z'])
+
+                self.data.append(_d)
+
+    def drawOrbit(self, ax, params):
+        '''
+        plot line of target planet (for planet orbit)
+        '''
+        self.xl = []
+        self.yl = []
+        self.zl = []
+        self.rl = []
+        self.r_xyl = []
+
+        begin_date = datetime.date(1800,1,1)
+        end_date = datetime.date(2050,1,1)
+        days_interval = 30                   # interval days
+
+        count = 0
+        while True:
+            day = begin_date + datetime.timedelta(days = count * days_interval)
+            if (end_date - day).days < 0: break
+            jd = self.toJD(day) - 2451545.0 # J2000
+            self.calc(jd, params)
+            count += 1
+
+        ax.plot(self.xl, self.yl, '-', lw=0.5,
+                color = {'Mercury': 'b',
+                         'Venus'  : '#ffd700',
+                         'Earth'  : 'g',
+                         'Mars'   : 'r',
+                         'Jupiter': '#8b4512',
+                         'Saturn' : '#deb887',
+                         'Uranus' : '#40e0d0',
+                         'Neptune': '#00bfff',
+                         'Pluto'  : 'k'
+                        }[self.name])
+
+    def plotPoint(self, ax, params, begin_date, end_date = None, days_interval = None):
+        '''
+        plot point of target planet on target date
+        '''
+        self.xl = []
+        self.yl = []
+        self.zl = []
+        self.rl = []
+        self.r_xyl = []
+
+        end_date = begin_date if end_date==None else end_date
+        days_interval = 1 if days_interval==None else days_interval
+
+        count = 0
+        while True:
+            day = begin_date + datetime.timedelta(days = count * days_interval)
+            if (end_date - day).days < 0: break
+            jd = self.toJD(day) - 2451545.0 # J2000
+            self.calc(jd, params)
+            count += 1
+
+        ax.plot(self.xl, self.yl, '*', ms=18,
+                color = {'Mercury': 'b',
+                         'Venus'  : '#ffd700',
+                         'Earth'  : 'g',
+                         'Mars'   : 'r',
+                         'Jupiter': '#8b4513',
+                         'Saturn' : '#deb887',
+                         'Uranus' : '#40e0d0',
+                         'Neptune': '#00bfff',
+                         'Pluto'  : 'gray'
+                     }[self.name])
+
+    def textDate(self, ax, params, begin_date, end_date = None, days_interval = None):
+        '''
+        caption text of planets
+        '''
+        self.xl = []
+        self.yl = []
+        self.zl = []
+        self.rl = []
+        self.r_xyl = []
+        dl = []
+
+        end_date = begin_date if end_date==None else end_date
+        days_interval = 1 if days_interval==None else days_interval
+
+        count = 0
+        while True:
+            day = begin_date + datetime.timedelta(days = count * days_interval)
+            if (end_date - day).days < 0: break
+            jd = self.toJD(day) - 2451545.0 # J2000
+            self.calc(jd, params)
+            dl.append(day)
+            count += 1
+
+        for i in range(len(dl)):
+            ax.text(self.xl[i], self.yl[i],
+                    "${0:%m/%d}^{{\mathrm{{'}}{0:%y}}}$".format(dl[i]), fontsize=6, ha='left', va='top')
+
+
 def main():
     params = {'inner': None,
               'theta': 6,
@@ -567,6 +712,10 @@ def main():
     # Uranus.textAngleEVE(ax, params, target_date)
     # Neptune.textAngleEVE(ax, params, target_date)
     # Pluto.textAngleEVE(ax, params, target_date)
+
+    ### JAXA ###
+    Haya2 = JAXA("Hayabusa2", "haya2_orbit_jaxa.txt")
+    Ryugu = JAXA("Ryugu", "haya2_orbit_jaxa.txt")
 
 
     ####### OUTER ########
