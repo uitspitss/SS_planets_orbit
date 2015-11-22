@@ -1,6 +1,6 @@
 #python
 # -*- coding:utf-8 -*-
-# Time-stamp: <Sun Nov 22 17:05:27 JST 2015>
+# Time-stamp: <Sun Nov 22 17:21:28 JST 2015>
 
 import math
 import datetime
@@ -714,8 +714,8 @@ def main():
     Ryugu.textAngleEVEJAXA(ax, params, 365)
 
 
-    fig.suptitle("Planets on {0:%Y-%m-%d}".format(target_date))
-    fig.savefig("Planets on {0:%Y-%m-%d}.png".format(target_date), dpi=300)
+    fig.suptitle("Planets and Haya2 on {0:%Y-%m-%d}".format(target_date))
+    fig.savefig("planets_and_Haya2_on_{0:%Y-%m-%d}.png".format(target_date), dpi=300)
 
     print("end")
 
