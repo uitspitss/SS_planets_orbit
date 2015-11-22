@@ -1,13 +1,13 @@
 #python
 # -*- coding:utf-8 -*-
-# Time-stamp: <Thu Nov 19 20:36:48 東京 (標準時) 2015>
+# Time-stamp: <Sat Nov 21 12:39:56 JST 2015>
 
 import math
 import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import lines
-
+from functools import singledispatch
 
 """
 DATA 1800AD - 2050AD equinox of J2000(JD2451545.0) from http://ssd.jpl.nasa.gov/txt/p_elem_t1.txt
@@ -542,99 +542,64 @@ class JAXA(Planet):
 
                 self.data.append(_d)
 
-    def drawOrbit(self, ax, params):
+
+    def drawOrbitJAXA(self, ax, params, begin_lp=0, end_lp=1279):
         '''
         plot line of target planet (for planet orbit)
         '''
-        self.xl = []
-        self.yl = []
-        self.zl = []
-        self.rl = []
-        self.r_xyl = []
+        begin_lp = 0 if begin_lp < 0 else begin_lp
+        end_lp = 1279 if end_lp > 1279 else end_lp
 
-        begin_date = datetime.date(1800,1,1)
-        end_date = datetime.date(2050,1,1)
-        days_interval = 30                   # interval days
+        for h in self.data[begin_lp:end_lp]:
+            px, py, pz = self.convertCood(h['x'], h['y'], h['z'], params)
+            ax.plot(px, py, '-', lw=5,
+                    color = {'Hayabusa2' : '#40e0d0',
+                             'Ryugu': '#00bfff'
+                            }[self.name])
 
-        count = 0
-        while True:
-            day = begin_date + datetime.timedelta(days = count * days_interval)
-            if (end_date - day).days < 0: break
-            jd = self.toJD(day) - 2451545.0 # J2000
-            self.calc(jd, params)
-            count += 1
-
-        ax.plot(self.xl, self.yl, '-', lw=0.5,
-                color = {'Mercury': 'b',
-                         'Venus'  : '#ffd700',
-                         'Earth'  : 'g',
-                         'Mars'   : 'r',
-                         'Jupiter': '#8b4512',
-                         'Saturn' : '#deb887',
-                         'Uranus' : '#40e0d0',
-                         'Neptune': '#00bfff',
-                         'Pluto'  : 'k'
-                        }[self.name])
-
-    def plotPoint(self, ax, params, begin_date, end_date = None, days_interval = None):
+    def plotPointJAXA(self, ax, params, begin_lp, end_lp = None, days_interval = None):
         '''
         plot point of target planet on target date
         '''
-        self.xl = []
-        self.yl = []
-        self.zl = []
-        self.rl = []
-        self.r_xyl = []
-
-        end_date = begin_date if end_date==None else end_date
+        end_lp = begin_lp+1 if end_lp==None else end_lp
         days_interval = 1 if days_interval==None else days_interval
 
-        count = 0
-        while True:
-            day = begin_date + datetime.timedelta(days = count * days_interval)
-            if (end_date - day).days < 0: break
-            jd = self.toJD(day) - 2451545.0 # J2000
-            self.calc(jd, params)
-            count += 1
+        for h in self.data[begin_lp:end_lp:days_interval]:
+            px, py, pz = self.convertCood(h['x'], h['y'], h['z'], params)
+            ax.plot(px, py, '*', ms=12,
+                    color = {'Hayabusa2' : '#40e0d0',
+                             'Ryugu': '#00bfff'
+                            }[self.name])
 
-        ax.plot(self.xl, self.yl, '*', ms=18,
-                color = {'Mercury': 'b',
-                         'Venus'  : '#ffd700',
-                         'Earth'  : 'g',
-                         'Mars'   : 'r',
-                         'Jupiter': '#8b4513',
-                         'Saturn' : '#deb887',
-                         'Uranus' : '#40e0d0',
-                         'Neptune': '#00bfff',
-                         'Pluto'  : 'gray'
-                     }[self.name])
-
-    def textDate(self, ax, params, begin_date, end_date = None, days_interval = None):
+    def textDateJAXA(self, ax, params, begin_lp, end_lp = None, days_interval = None):
         '''
         caption text of planets
         '''
-        self.xl = []
-        self.yl = []
-        self.zl = []
-        self.rl = []
-        self.r_xyl = []
-        dl = []
-
-        end_date = begin_date if end_date==None else end_date
+        end_lp = begin_lp+1 if end_lp==None else end_lp
         days_interval = 1 if days_interval==None else days_interval
 
-        count = 0
-        while True:
-            day = begin_date + datetime.timedelta(days = count * days_interval)
-            if (end_date - day).days < 0: break
-            jd = self.toJD(day) - 2451545.0 # J2000
-            self.calc(jd, params)
-            dl.append(day)
-            count += 1
+        for h in self.data[begin_lp:end_lp:days_interval]:
+            px, py, pz = self.convertCood(h['x'], h['y'], h['z'], params)
+            ax.text(px, py,
+                    "${0:%m/%d}^{{\mathrm{{'}}{0:%y}}}$".format(h['date']),
+                    fontsize=6, ha='left', va='top')
 
-        for i in range(len(dl)):
-            ax.text(self.xl[i], self.yl[i],
-                    "${0:%m/%d}^{{\mathrm{{'}}{0:%y}}}$".format(dl[i]), fontsize=6, ha='left', va='top')
+    def textAngleEVEJAXA(self, ax, params, begin_lp, end_lp = None, days_interval = None):
+        '''
+        for exhibition function
+        angle of Vernal Equinox day's Earth positon <-> Sun position <-> Planet position
+        '''
+        end_lp = begin_lp+1 if end_lp==None else end_lp
+        days_interval = 1 if days_interval==None else days_interval
+
+        for h in self.data[begin_lp:end_lp:days_interval]:
+            px, py, pz = self.convertCood(h['x'], h['y'], h['z'], params)
+            a = np.array([px, py])
+            b = np.array(params['EVE'])
+            ang = self.angle2vector(a, b) # ang[radian]
+            ang_deg = math.degrees(ang)
+            print("{:s} angle(x-y): {:.3f}".format(self.name, ang_deg))
+            ax.text(px, py, "{:.1f}".format(ang_deg), fontsize=6, ha='left', va='bottom')
 
 
 def main():
@@ -652,9 +617,15 @@ def main():
 
     fig = plt.figure(figsize=(10,5))
     ax  = fig.add_subplot(121)
+    ax.set_xlabel("$x[\mathrm{au}]$")
+    ax.set_ylabel("$y[\mathrm{au}]$")
     ax.axis('equal')
     if params['inner']:
         ax.axis([-2,2,-2,2])
+        ax.set_title('inner')
+    else:
+        ax.axis([-5,5,-5,5])
+        ax.set_title('outer')
 
     ax.plot(0, 0, "ro") # SUN
 
@@ -717,16 +688,33 @@ def main():
     Haya2 = JAXA("Hayabusa2", "haya2_orbit_jaxa.txt")
     Ryugu = JAXA("Ryugu", "haya2_orbit_jaxa.txt")
 
+    Haya2.drawOrbitJAXA(ax, params)
+    Ryugu.drawOrbitJAXA(ax, params)
+
+    Haya2.plotPointJAXA(ax, params, 365)
+    Ryugu.plotPointJAXA(ax, params, 365)
+
+    Haya2.textDateJAXA(ax, params, 365)
+    Ryugu.textDateJAXA(ax, params, 365)
+
+    Haya2.textAngleEVEJAXA(ax, params, 365)
+    Ryugu.textAngleEVEJAXA(ax, params, 365)
+
 
     ####### OUTER ########
     params['inner'] = False
 
     ax  = fig.add_subplot(122)
+    ax.set_xlabel("$x[\mathrm{au}]$")
+    ax.set_ylabel("$y[\mathrm{au}]$")
     ax.axis('equal')
+
     if params['inner']:
         ax.axis([-2,2,-2,2])
+        ax.set_title('inner')
     else:
         ax.axis([-50,50,-50,50])
+        ax.set_title('outer')
 
     ax.plot(0, 0, "ro") # SUN
 
@@ -772,6 +760,7 @@ def main():
     Neptune.textAngleEVE(ax, params, target_date)
     Pluto.textAngleEVE(ax, params, target_date)
 
+    fig.suptitle("Planets on {0:%Y-%m-%d}".format(target_date))
     fig.savefig("Planets on {0:%Y-%m-%d}.png".format(target_date), dpi=300)
 
     print("end")
