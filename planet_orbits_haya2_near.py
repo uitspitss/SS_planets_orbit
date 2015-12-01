@@ -1,6 +1,6 @@
 #python
 # -*- coding:utf-8 -*-
-# Time-stamp: <Fri Nov 27 04:59:50 JST 2015>
+# Time-stamp: <Fri Nov 27 12:38:11 JST 2015>
 
 import math
 import re
@@ -300,31 +300,18 @@ class Planet:
         return [x3, y3, z3]
 
 
-    def toJD(self, da):
+    def toJD(self, dt):
         '''
         from http://astronomy.webcrow.jp/time/gregoriancalendar-julianday.html
         '''
-        y = da.year
-        m = da.month
+        y,m,d,H,M,S = dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second
 
         if m < 3:
             m = m + 12
             y = y - 1
 
-        jd_year = int(365.25 * y) - int(y/100) + int(y/400) + 1721088.5
-        jd_day = int(30.59 * (m -2)) + int(da.day)
-        jd = jd_year + jd_day
-        return jd
-
-    def toJDprec(self, dt):
-        Y,M,D,h,m,s = dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second
-
-        if M < 3:
-            M = M + 12
-            Y = Y - 1
-
-        jd_year = int(365.25 * Y) - int(Y/100) + int(Y/400) + 1721088.5
-        jd_day = int(30.59 * (M -2)) + int(D) + h/24. + m/1440. + s/86400.
+        jd_year = int(365.25 * y) - int(y/100.) + int(y/400.) + 1721088.5
+        jd_day = int(30.59 * (m - 2)) + int(d) + H/24. + M/1440. + S/86400.
         jd = jd_year + jd_day
         return jd
 
@@ -339,17 +326,19 @@ class Planet:
         self.rl = []
         self.r_xyl = []
 
-        begin_date = datetime(2015,1,1, tzinfo=timezone.utc)
-        end_date = datetime(2016,1,1, tzinfo=timezone.utc)
-        days_interval = 0.01                   # interval days
+        begin_time = datetime(2015,1,1, tzinfo=timezone.utc)
+        end_time = datetime(2016,1,1, tzinfo=timezone.utc)
+        interval_time = timedelta(days=self.a)
 
-        count = 0
-        while True:
-            day = begin_date + timedelta(days = count * days_interval)
-            if (end_date - day).days < 0: break
-            jd = self.toJDprec(day) - 2451545.0 # J2000
+        begin_time = begin_time.replace(tzinfo=timezone.utc)
+        end_time = begin_time if end_time==None else end_time.replace(tzinfo=timezone.utc)
+        days_interval = timedelta(days=1) if interval_time==None else interval_time
+        target_time = begin_time
+
+        while target_time <= end_time:
+            jd = self.toJD(target_time) - 2451545.0 # J2000
             self.calc(jd, params)
-            count += 1
+            target_time += interval_time
 
         ax.plot(self.xl, self.yl, '-', lw=0.5,
                 color = {'Mercury': 'b',
@@ -364,7 +353,7 @@ class Planet:
                         }[self.name])
 
 
-    def plotPoint(self, ax, params, begin_date, end_date = None, days_interval = None):
+    def plotPoint(self, ax, params, begin_time, end_time = None, interval_time = None):
         '''
         plot point of target planet on target date
         '''
@@ -374,20 +363,15 @@ class Planet:
         self.rl = []
         self.r_xyl = []
 
-        end_date = begin_date if end_date==None else end_date
-        days_interval = 0.01 if days_interval==None else days_interval
+        begin_time = begin_time.replace(tzinfo=timezone.utc)
+        end_time = begin_time if end_time==None else end_time.replace(tzinfo=timezone.utc)
+        interval_time = timedelta(days=1) if interval_time==None else interval_time
+        target_time = begin_time
 
-        begin_date = begin_date.replace(tzinfo=timezone.utc)
-        end_date = end_date.replace(tzinfo=timezone.utc)
-
-        count = 0
-        while True:
-            day = begin_date + timedelta(days = count * days_interval)
-            if day > end_date: break
-            jd = self.toJDprec(day) - 2451545.0 # J2000
-            # jd = self.toJD(day) - 2451545.0 # J2000
+        while target_time <= end_time:
+            jd = self.toJD(target_time) - 2451545.0 # J2000
             self.calc(jd, params)
-            count += 1
+            target_time += interval_time
 
         ax.plot(self.xl, self.yl, '*', ms=8,
                 color = {'Mercury': 'b',
@@ -401,7 +385,7 @@ class Planet:
                          'Pluto'  : 'gray'
                      }[self.name])
 
-    def textDate(self, ax, params, begin_date, end_date = None, days_interval = None):
+    def textDate(self, ax, params, begin_time, end_time=None, interval_time=None):
         '''
         caption text of planets
         '''
@@ -412,17 +396,16 @@ class Planet:
         self.r_xyl = []
         dl = []
 
-        end_date = begin_date if end_date==None else end_date
-        days_interval = 1 if days_interval==None else days_interval
+        begin_time = begin_time.replace(tzinfo=timezone.utc)
+        end_time = begin_time if end_time==None else end_time.replace(tzinfo=timezone.utc)
+        interval_time = timedelta(days=1) if interval_time==None else interval_time
+        target_time = begin_time
 
-        count = 0
-        while True:
-            day = begin_date + timedelta(days = count * days_interval)
-            if (end_date - day).days < 0: break
-            jd = self.toJD(day) - 2451545.0 # J2000
+        while target_time <= end_time:
+            jd = self.toJD(target_time) - 2451545.0 # J2000
             self.calc(jd, params)
-            dl.append(day)
-            count += 1
+            dl.append(target_time)
+            target_time += interval_time
 
         for i in range(len(dl)):
             ax.text(self.xl[i], self.yl[i],
@@ -453,7 +436,7 @@ class Planet:
                  color = {'Earth'  : '#00fa9a'}[self.name])
 
 
-    def textAngleEVE(self, ax, params, begin_date, end_date = None, days_interval = None):
+    def textAngleEVE(self, ax, params, begin_time, end_time=None, interval_time=None):
         '''
         for exhibition function
         angle of Vernal Equinox day's Earth positon <-> Sun position <-> Planet position
@@ -464,16 +447,15 @@ class Planet:
         self.rl = []
         self.r_xyl = []
 
-        end_date = begin_date if end_date==None else end_date
-        days_interval = 1 if days_interval==None else days_interval
+        begin_time = begin_time.replace(tzinfo=timezone.utc)
+        end_time = begin_time if end_time==None else end_time.replace(tzinfo=timezone.utc)
+        interval_time = timedelta(days=1) if interval_time==None else interval_time
+        target_time = begin_time
 
-        count = 0
-        while True:
-            day = begin_date + timedelta(days = count * days_interval)
-            if (end_date - day).days < 0: break
-            jd = self.toJD(day) - 2451545.0 # J2000
+        while target_time <= end_time:
+            jd = self.toJD(target_time) - 2451545.0 # J2000
             self.calc(jd, params)
-            count += 1
+            target_time += interval_time
 
         for i in range(len(self.xl)):
             a = np.array([self.xl[i], self.yl[i]])
@@ -526,6 +508,7 @@ class JAXA(Planet):
                 if re.match('^#', line): continue
                 _d = {}
                 c = re.split('\s+', line)
+
                 _date = datetime.strptime(c[0], "%Y/%m/%d.%H:%M:%S")
                 _d['date'] = datetime(_date.year, _date.month, _date.day, _date.hour, _date.minute, _date.second,  tzinfo=timezone.utc) # date type
                 _d['lp']   = float(c[1])     # L+ [days]
@@ -547,12 +530,13 @@ class JAXA(Planet):
                 self.data["{:%Y%m%d%H%M%S}".format(_d['date'])] = _d
 
         if self.name == "Ryugu":
-            self.data = []
+            self.data = OrderedDict()
             h2list = [x.strip() for x in open(data_file,'r',encoding='utf-8').readlines()]
             for line in h2list:
                 if re.match('^#', line): continue
                 _d = {}
                 c = re.split('\s+', line)
+
                 _date = datetime.strptime(c[0], "%Y/%m/%d.%H:%M:%S")
                 _d['date'] = datetime(_date.year, _date.month, _date.day, _date.hour, _date.minute, _date.second,  tzinfo=timezone.utc) # date type
                 _d['lp']   = float(c[1])      # L+ [days]
@@ -561,7 +545,7 @@ class JAXA(Planet):
                 _d['z']  = float(c[10])       # Z pos. [au]
                 _d['ra'] = float(c[13])       # distance of Ryugu-Haya2 [10**4 km]
 
-                self.data.append(_d)
+                self.data["{:%Y%m%d%H%M%S}".format(_d['date'])] = _d
 
 
     def drawOrbitJAXA(self, ax, params, begin_time=None, end_time=None, interval_time=None):
@@ -573,13 +557,6 @@ class JAXA(Planet):
             px, py, pz = self.convertCood(v['x'], v['y'], v['z'], params)
             xl.append(px)
             yl.append(py)
-
-            # if v['date'] >= begin_time:
-            #     px, py, pz = self.convertCood(v['x'], v['y'], v['z'], params)
-            #     xl.append(px)
-            #     yl.append(py)
-            # if v['date'] < end_time:
-            #     break
 
         ax.plot(xl, yl, '--', lw=0.5,
                 color = {'Hayabusa2' : '#00bfff',
@@ -625,44 +602,31 @@ class JAXA(Planet):
                 px, py, pz = self.convertCood(v['x'], v['y'], v['z'], params)
                 ax.text(px, py,
                         "${0:%m/%d}^{{\mathrm{{'}}{0:%y}}}$".format(v['date']),
+                        # "${:%H:%M:%S}$".format(v['date']),
                         fontsize=6, ha='left', va='top')
             target_time += interval_time
 
-    def textDateJAXAprec(self, ax, params, begin_time=None, end_time=None, interval_time=None):
+
+    def textAngleEVEJAXA(self, ax, params, begin_time, end_time=None, interval_time=None):
         '''
-        caption text of planets
+        for exhibition function
+        angle of Vernal Equinox day's Earth positon <-> Sun position <-> Planet position
         '''
-        begin_time = begin_time.replace(tzinfo=timezone.utc)
-        end_time = end_time.replace(tzinfo=timezone.utc)
-        target_time = begin_time
+        end_time = begin_time if end_time==None else end_time
+        interval_time = timedelta(days=1) if interval_time==None else interval_time
 
         while target_time <= end_time:
             k = "{:%Y%m%d%H%M%S}".format(target_time)
             if k in self.data:
                 v = self.data[k]
                 px, py, pz = self.convertCood(v['x'], v['y'], v['z'], params)
-                ax.text(px, py,
-                        "${:%H:%M:%S}$".format(v['date']),
-                        fontsize=6, ha='left', va='top')
-            target_time += interval_time
-
-
-    def textAngleEVEJAXA(self, ax, params, begin_lp, end_lp = None, days_interval = None):
-        '''
-        for exhibition function
-        angle of Vernal Equinox day's Earth positon <-> Sun position <-> Planet position
-        '''
-        end_lp = begin_lp+1 if end_lp==None else end_lp
-        days_interval = 1 if days_interval==None else days_interval
-
-        for d in self.data[begin_lp:end_lp:days_interval]:
-            px, py, pz = self.convertCood(d['x'], d['y'], d['z'], params)
-            a = np.array([px, py])
-            b = np.array(params['EVE'])
-            ang = self.angle2vector(a, b) # ang[radian]
-            ang_deg = math.degrees(ang)
-            print("{:s} angle(x-y): {:.3f}".format(self.name, ang_deg))
-            ax.text(px, py, "{:.1f}".format(ang_deg), fontsize=6, ha='left', va='bottom')
+                a = np.array([px, py])
+                b = np.array(params['EVE'])
+                ang = self.angle2vector(a, b) # ang[radian]
+                ang_deg = math.degrees(ang)
+                print("{:s} angle(x-y): {:.3f}".format(self.name, ang_deg))
+                ax.text(px, py, "{:.1f}".format(ang_deg), fontsize=6, ha='left', va='bottom')
+            target += interval_time
 
 
 def main():
@@ -743,7 +707,7 @@ def main():
     # Ryugu.plotPointJAXA(ax, params)
 
     # ## JAXA.textDateJAXA(axisObj, paramsDic, begin_lp, end_lp[opt], days_interval[opt])
-    Haya2.textDateJAXAprec(ax, params, datetime(2015, 12, 3, 9,30,0), datetime(2015, 12, 3, 10,30,0), timedelta(minutes=30))
+    Haya2.textDateJAXA(ax, params, datetime(2015, 12, 3, 9,30,0), datetime(2015, 12, 3, 10,30,0), timedelta(minutes=30))
     # Ryugu.textDateJAXA(ax, params, 365)
 
     # ## JAXA.textAngleEVEJAXA(axisObj, paramsDic, begin_lp, end_lp[opt], days_interval[opt])
@@ -754,8 +718,8 @@ def main():
     # fig.suptitle("Planets and Haya2 on {0:%Y-%m-%d}".format(target_date))
     # fig.savefig("planets_and_Haya2_on_{0:%Y-%m-%d}.png".format(target_date), dpi=300)
 
-    fig.suptitle("Planets and Haya2".format(target_date))
-    fig.savefig("planets_and_Haya2.png".format(target_date), dpi=300)
+    fig.suptitle("Earth and Haya2 on Dec.3".format(target_date))
+    fig.savefig("Earth_and_Haya2_20151203.png".format(target_date), dpi=300)
 
     print("end")
 
