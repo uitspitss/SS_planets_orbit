@@ -1,6 +1,6 @@
 #python
 # -*- coding:utf-8 -*-
-# Time-stamp: <Sun Nov 22 17:21:06 JST 2015>
+# Time-stamp: <Mon Jan 11 07:14:23 JST 2016>
 
 import math
 import datetime
@@ -500,7 +500,7 @@ def main():
               'EVE': [0, 0],
               'EVEday': datetime.date(2014, 3, 21)}
 
-    target_date = datetime.date(2015, 12, 3) # plot position on target_date
+    target_date = datetime.date(2016, 2, 15) # plot position on target_date
 
     ####### INNER ########
     params['inner'] = True

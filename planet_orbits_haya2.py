@@ -1,6 +1,6 @@
 #python
 # -*- coding:utf-8 -*-
-# Time-stamp: <Tue Dec 01 12:50:44 JST 2015>
+# Time-stamp: <Mon Jan 11 09:28:04 JST 2016>
 
 import math
 import re
@@ -9,7 +9,6 @@ from collections import OrderedDict
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import lines
-
 
 
 """
@@ -671,7 +670,7 @@ def main():
               'EVE': [0, 0],
               'EVEday': datetime(2014, 3, 21, tzinfo=timezone.utc)}
 
-    target_date = datetime(2015, 12, 3, tzinfo=timezone.utc) # plot position on target_date
+    target_date = datetime(2016, 2, 15, tzinfo=timezone.utc) # plot position on target_date
 
     ####### INNER ########
     params['inner'] = True
@@ -729,26 +728,30 @@ def main():
     Ryugu = JAXA("Ryugu", "haya2_orbit_jaxa.txt")
     EarthJAXA = JAXA("EarthJAXA", "haya2_orbit_jaxa.txt")
 
-    begin_time = datetime(2015, 11, 3, 5, 0, 0)
-    end_time = datetime(2016, 2, 3, 5, 0, 0)
+    # orbit
+    begin_time = datetime(2016, 1, 15, 5, 0, 0)
+    end_time = datetime(2016, 4, 15, 5, 0, 0)
     Haya2.drawOrbitJAXA(ax, params, begin_time, end_time, timedelta(days=1))
     Ryugu.drawOrbitJAXA(ax, params, begin_time, end_time, timedelta(days=1))
 
-    begin_time = datetime(2015, 11, 3, 5, 0, 0)
-    end_time = datetime(2016, 1, 3, 5, 0, 0)
+    # point
+    begin_time = datetime(2016, 1, 15, 5, 0, 0)
+    end_time = datetime(2016, 4, 15, 5, 0, 0)
     Haya2.plotPointJAXA(ax, params, begin_time, end_time, timedelta(days=15))
     EarthJAXA.plotPointJAXA(ax, params, begin_time, end_time, timedelta(days=15))
     Ryugu.plotPointJAXA(ax, params, begin_time, end_time, timedelta(days=15))
 
-    begin_time = datetime(2015, 11, 3, 5, 0, 0)
-    end_time = datetime(2016, 1, 3, 5, 0, 0)
+    # text date
+    begin_time = datetime(2016, 1, 15, 5, 0, 0)
+    end_time = datetime(2016, 4, 15, 5, 0, 0)
     Haya2.textDateJAXA(ax, params, begin_time, end_time, timedelta(days=15))
     Ryugu.textDateJAXA(ax, params, begin_time, end_time, timedelta(days=15))
 
-    begin_time = datetime(2015, 11, 3, 5, 0, 0)
-    end_time = datetime(2016, 1, 3, 5, 0, 0)
+    # text angle
+    begin_time = datetime(2016, 1, 15, 5, 0, 0)
+    end_time = datetime(2016, 4, 15, 5, 0, 0)
     Haya2.textAngleEVEJAXA(ax, params, begin_time, end_time, timedelta(days=15))
-    Ryugu.textAngleEVEJAXA(ax, params, datetime(2015, 11, 3, 5, 0, 0), datetime(2016, 1, 3, 5, 0, 0), timedelta(days=15))
+    Ryugu.textAngleEVEJAXA(ax, params, datetime(2016, 1, 15, 5, 0, 0), datetime(2016, 4, 15, 5, 0, 0), timedelta(days=15))
 
     # ## JAXA.textAngleEVEJAXA(axisObj, paramsDic, begin_lp, end_lp[opt], days_interval[opt])
     # Haya2.textAngleEVEJAXA(ax, params, 365)
@@ -758,9 +761,8 @@ def main():
     # fig.suptitle("Planets and Haya2 on {0:%Y-%m-%d}".format(target_date))
     # fig.savefig("planets_and_Haya2_on_{0:%Y-%m-%d}.png".format(target_date), dpi=300)
 
-    fig.suptitle("Earth and Haya2 on Dec.3".format(target_date))
-    fig.savefig("Earth_and_Haya2_20151203.png".format(target_date), dpi=300)
-
+    fig.suptitle("Earth and Haya2 on {:%Y-%m-%d}".format(target_date))
+    fig.savefig("Earth_and_Haya2_{:%Y-%m-%d}.png".format(target_date), dpi=300)
     print("end")
 
 
