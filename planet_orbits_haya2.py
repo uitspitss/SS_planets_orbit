@@ -1,6 +1,6 @@
 #python
 # -*- coding:utf-8 -*-
-# Time-stamp: <Mon Jan 11 09:28:04 JST 2016>
+# Time-stamp: <Wed Mar 02 12:31:27 JST 2016>
 
 import math
 import re
@@ -670,7 +670,7 @@ def main():
               'EVE': [0, 0],
               'EVEday': datetime(2014, 3, 21, tzinfo=timezone.utc)}
 
-    target_date = datetime(2016, 2, 15, tzinfo=timezone.utc) # plot position on target_date
+    target_date = datetime(2016, 3, 15, tzinfo=timezone.utc) # plot position on target_date
 
     ####### INNER ########
     params['inner'] = True
@@ -729,29 +729,29 @@ def main():
     EarthJAXA = JAXA("EarthJAXA", "haya2_orbit_jaxa.txt")
 
     # orbit
-    begin_time = datetime(2016, 1, 15, 5, 0, 0)
-    end_time = datetime(2016, 4, 15, 5, 0, 0)
+    begin_time = datetime(2016, 2, 15, 5, 0, 0)
+    end_time = datetime(2016, 5, 15, 5, 0, 0)
     Haya2.drawOrbitJAXA(ax, params, begin_time, end_time, timedelta(days=1))
     Ryugu.drawOrbitJAXA(ax, params, begin_time, end_time, timedelta(days=1))
 
     # point
-    begin_time = datetime(2016, 1, 15, 5, 0, 0)
-    end_time = datetime(2016, 4, 15, 5, 0, 0)
+    # begin_time = datetime(2016, 1, 15, 5, 0, 0)
+    # end_time = datetime(2016, 4, 15, 5, 0, 0)
     Haya2.plotPointJAXA(ax, params, begin_time, end_time, timedelta(days=15))
     EarthJAXA.plotPointJAXA(ax, params, begin_time, end_time, timedelta(days=15))
     Ryugu.plotPointJAXA(ax, params, begin_time, end_time, timedelta(days=15))
 
     # text date
-    begin_time = datetime(2016, 1, 15, 5, 0, 0)
-    end_time = datetime(2016, 4, 15, 5, 0, 0)
+    # begin_time = datetime(2016, 1, 15, 5, 0, 0)
+    # end_time = datetime(2016, 4, 15, 5, 0, 0)
     Haya2.textDateJAXA(ax, params, begin_time, end_time, timedelta(days=15))
     Ryugu.textDateJAXA(ax, params, begin_time, end_time, timedelta(days=15))
 
     # text angle
-    begin_time = datetime(2016, 1, 15, 5, 0, 0)
-    end_time = datetime(2016, 4, 15, 5, 0, 0)
+    # begin_time = datetime(2016, 2, 15, 5, 0, 0)
+    # end_time = datetime(2016, 5, 15, 5, 0, 0)
     Haya2.textAngleEVEJAXA(ax, params, begin_time, end_time, timedelta(days=15))
-    Ryugu.textAngleEVEJAXA(ax, params, datetime(2016, 1, 15, 5, 0, 0), datetime(2016, 4, 15, 5, 0, 0), timedelta(days=15))
+    Ryugu.textAngleEVEJAXA(ax, params, begin_time, end_time, timedelta(days=15))
 
     # ## JAXA.textAngleEVEJAXA(axisObj, paramsDic, begin_lp, end_lp[opt], days_interval[opt])
     # Haya2.textAngleEVEJAXA(ax, params, 365)
