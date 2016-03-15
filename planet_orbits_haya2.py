@@ -1,6 +1,6 @@
 #python
 # -*- coding:utf-8 -*-
-# Time-stamp: <Wed Mar 02 12:31:27 JST 2016>
+# Time-stamp: <Wed Mar 16 05:07:55 東京 (標準時) 2016>
 
 import math
 import re
@@ -403,7 +403,7 @@ class Planet:
 
         for i in range(len(dl)):
             ax.text(self.xl[i], self.yl[i],
-                    "${0:%m/%d}^{{\mathrm{{'}}{0:%y}}}$".format(dl[i]), fontsize=6, ha='left', va='top')
+                    "${0:%m/%d}^{{\mathrm{{'}}{0:%y}}}$".format(dl[i]), fontsize=4, ha='left', va='top')
 
 
     def calcEVE(self, ax, params):
@@ -459,7 +459,34 @@ class Planet:
             ang_deg = math.degrees(ang)
 
             print("{:s} angle(x-y): {:.3f}".format(self.name, ang_deg))
-            ax.text(self.xl[i], self.yl[i], "{:.1f}".format(ang_deg), fontsize=6, ha='left', va='bottom')
+            ax.text(self.xl[i], self.yl[i], "{:.1f}".format(ang_deg), fontsize=4, ha='left', va='bottom')
+
+    def textDistanceFromSun(self, ax, params, begin_time, end_time=None, interval_time=None):
+        '''
+        function for exhibition
+        distatnce of Sun position <-> Planet position
+        '''
+        self.xl = []
+        self.yl = []
+        self.zl = []
+        self.rl = []
+        self.r_xyl = []
+        dl = []
+
+        begin_time = begin_time.replace(tzinfo=timezone.utc)
+        end_time = begin_time if end_time==None else end_time.replace(tzinfo=timezone.utc)
+        interval_time = timedelta(days=1) if interval_time==None else interval_time
+        target_time = begin_time
+
+        while target_time <= end_time:
+            jd = self.toJD(target_time) - 2451545.0 # J2000
+            self.calc(jd, params)
+            dl.append(target_time)
+            target_time += interval_time
+
+        for i in range(len(dl)):
+            ax.text(self.xl[i], self.yl[i],
+                    "${0:.2e}$".format(self.rl[i] * params['mag']), fontsize=4, ha='right', va='center')
 
 
     '''
@@ -537,7 +564,8 @@ class JAXA(Planet):
                 _d['x']  = float(c[8])        # X pos. [au]
                 _d['y']  = float(c[9])        # Y pos. [au]
                 _d['z']  = float(c[10])       # Z pos. [au]
-                _d['re'] = float(c[12])      # distance of Earth-Haya2 [10**4 km]
+                _d['rs'] = float(c[11])      # distance of Sun-Haya2 [10**4 km]
+                _d['ra'] = float(c[13])      # distance of 1999JU3-Haya2 [10**4 km]
 
                 self.data["{:%Y%m%d%H%M%S}".format(_d['date'])] = _d
 
@@ -628,7 +656,7 @@ class JAXA(Planet):
                 ax.text(px, py,
                         "${0:%m/%d}^{{\mathrm{{'}}{0:%y}}}$".format(v['date']),
                         # "${:%H:%M:%S}$".format(v['date']),
-                        fontsize=6, ha='left', va='top')
+                        fontsize=4, ha='left', va='top')
             target_time += interval_time
 
 
@@ -641,8 +669,6 @@ class JAXA(Planet):
         end_time = end_time.replace(tzinfo=timezone.utc)
         target_time = begin_time
 
-        AU = 149597870691       # debug
-
         while target_time <= end_time:
             k = "{:%Y%m%d%H%M%S}".format(target_time)
             if k in self.data:
@@ -654,13 +680,33 @@ class JAXA(Planet):
                 ang_deg = math.degrees(ang)
                 # for exhibition
                 print("{:s} angle(x-y): {:.3f}".format(self.name, ang_deg))
-                if self.name == "Hayabusa2":
-                    print("{:s} distance from sun: {:.3f}".format(self.name, v['rs']*10**7/AU*params['mag']))
-                    print("{:s} distance from earth: {:.3f}".format(self.name, v['re']*10**7/AU*params['mag']))
-                    print("{:s} distance from Ryugu: {:.3f}".format(self.name, v['ra']*10**7/AU*params['mag']))
-                ax.text(px, py, "{:.1f}".format(ang_deg), fontsize=6, ha='left', va='bottom')
+                ax.text(px, py, "{:.1f}".format(ang_deg), fontsize=4, ha='left', va='bottom')
             target_time += interval_time
 
+
+    def textDistanceFromSunJAXA(self, ax, params, begin_time, end_time=None, interval_time=None):
+        '''
+        function for exhibition
+        distatnce of Sun position <-> Planet position
+        '''
+        begin_time = begin_time.replace(tzinfo=timezone.utc)
+        end_time = end_time.replace(tzinfo=timezone.utc)
+        target_time = begin_time
+
+        while target_time <= end_time:
+            k = "{:%Y%m%d%H%M%S}".format(target_time)
+            if k in self.data:
+                v = self.data[k]
+                px, py, pz = self.convertCood(v['x'], v['y'], v['z'], params)
+                rs = (px*px + py*py + pz*pz) ** 0.5
+                # if self.name == "Hayabusa2":
+                #     print("{:s} distance from sun: {:.3f}".format(self.name, v['rs']* 10**7/AU))
+                #     print("{:s} distance from sun_: {:.3f}".format(self.name, rs))
+                #     print("{:s} distance from earth: {:.3f}".format(self.name, v['re']*10**7/AU*params['mag']))
+                #     print("{:s} distance from Ryugu: {:.3f}".format(self.name, v['ra']*10**7/AU*params['mag']))
+                ax.text(px, py,
+                        "${0:.2e}$".format(rs * params['mag']), fontsize=4, ha='right', va='center')
+            target_time += interval_time
 
 def main():
     params = {'inner': None,
@@ -704,11 +750,13 @@ def main():
     Mercury.drawOrbit(ax, params)
     Mercury.plotPoint(ax, params, target_date)
     Mercury.textDate(ax, params, target_date)
+    Mercury.textDistanceFromSun(ax, params, target_date)
     Mercury.textAngleEVE(ax, params, target_date)
 
     Venus.drawOrbit(ax, params)
     Venus.plotPoint(ax, params, target_date)
     Venus.textDate(ax, params, target_date)
+    Venus.textDistanceFromSun(ax, params, target_date)
     Venus.textAngleEVE(ax, params, target_date)
 
     Earth.drawOrbit(ax, params)
@@ -719,6 +767,7 @@ def main():
     Mars.drawOrbit(ax, params)
     Mars.plotPoint(ax, params, target_date)
     Mars.textDate(ax, params, target_date)
+    Mars.textDistanceFromSun(ax, params, target_date)
     Mars.textAngleEVE(ax, params, target_date)
 
 
@@ -737,25 +786,28 @@ def main():
     # point
     # begin_time = datetime(2016, 1, 15, 5, 0, 0)
     # end_time = datetime(2016, 4, 15, 5, 0, 0)
-    Haya2.plotPointJAXA(ax, params, begin_time, end_time, timedelta(days=15))
-    EarthJAXA.plotPointJAXA(ax, params, begin_time, end_time, timedelta(days=15))
-    Ryugu.plotPointJAXA(ax, params, begin_time, end_time, timedelta(days=15))
+    Haya2.plotPointJAXA(ax, params, begin_time, end_time, timedelta(days=30))
+    EarthJAXA.plotPointJAXA(ax, params, begin_time, end_time, timedelta(days=30))
+    Ryugu.plotPointJAXA(ax, params, begin_time, end_time, timedelta(days=30))
 
     # text date
     # begin_time = datetime(2016, 1, 15, 5, 0, 0)
     # end_time = datetime(2016, 4, 15, 5, 0, 0)
-    Haya2.textDateJAXA(ax, params, begin_time, end_time, timedelta(days=15))
-    Ryugu.textDateJAXA(ax, params, begin_time, end_time, timedelta(days=15))
+    Haya2.textDateJAXA(ax, params, begin_time, end_time, timedelta(days=30))
+    Ryugu.textDateJAXA(ax, params, begin_time, end_time, timedelta(days=30))
 
     # text angle
     # begin_time = datetime(2016, 2, 15, 5, 0, 0)
     # end_time = datetime(2016, 5, 15, 5, 0, 0)
-    Haya2.textAngleEVEJAXA(ax, params, begin_time, end_time, timedelta(days=15))
-    Ryugu.textAngleEVEJAXA(ax, params, begin_time, end_time, timedelta(days=15))
+    Haya2.textAngleEVEJAXA(ax, params, begin_time, end_time, timedelta(days=30))
+    Ryugu.textAngleEVEJAXA(ax, params, begin_time, end_time, timedelta(days=30))
 
     # ## JAXA.textAngleEVEJAXA(axisObj, paramsDic, begin_lp, end_lp[opt], days_interval[opt])
     # Haya2.textAngleEVEJAXA(ax, params, 365)
     # Ryugu.textAngleEVEJAXA(ax, params, 365)
+
+    Haya2.textDistanceFromSunJAXA(ax, params, begin_time, end_time, timedelta(days=30))
+    Ryugu.textDistanceFromSunJAXA(ax, params, begin_time, end_time, timedelta(days=30))
 
 
     # fig.suptitle("Planets and Haya2 on {0:%Y-%m-%d}".format(target_date))
