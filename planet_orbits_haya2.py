@@ -1,6 +1,5 @@
 #python
 # -*- coding:utf-8 -*-
-# Time-stamp: <Wed Mar 16 05:07:55 東京 (標準時) 2016>
 
 import math
 import re
