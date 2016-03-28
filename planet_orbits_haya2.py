@@ -4,6 +4,7 @@
 import math
 import re
 from datetime import datetime, timedelta, timezone
+from dateutil.relativedelta import relativedelta
 from collections import OrderedDict
 import numpy as np
 import matplotlib.pyplot as plt
@@ -711,11 +712,15 @@ def main():
     params = {'inner': None,
               'theta': 6,
               'phi': -8,
-              'mag': 0.245/1.,
+              'mag': 0.25/1.,
               'EVE': [0, 0],
               'EVEday': datetime(2014, 3, 21, tzinfo=timezone.utc)}
 
-    target_date = datetime(2016, 3, 15, tzinfo=timezone.utc) # plot position on target_date
+    target_month = 4
+    target_day = 15
+    EVE_angle = 25              # degrees
+
+    target_date = datetime(2016, target_month, target_day, tzinfo=timezone.utc) # plot position on target_date
 
     ####### INNER ########
     params['inner'] = True
@@ -760,8 +765,8 @@ def main():
 
     Earth.drawOrbit(ax, params)
     Earth.plotPoint(ax, params, target_date)
-    # Earth.textDate(ax, params, target_date)
-    # Earth.textAngleEVE(ax, params, target_date)
+    Earth.textDate(ax, params, target_date)
+    Earth.textAngleEVE(ax, params, target_date)
 
     Mars.drawOrbit(ax, params)
     Mars.plotPoint(ax, params, target_date)
@@ -777,36 +782,38 @@ def main():
     EarthJAXA = JAXA("EarthJAXA", "haya2_orbit_jaxa.txt")
 
     # orbit
-    begin_time = datetime(2016, 2, 15, 5, 0, 0)
-    end_time = datetime(2016, 5, 15, 5, 0, 0)
-    Haya2.drawOrbitJAXA(ax, params, begin_time, end_time, timedelta(days=1))
-    Ryugu.drawOrbitJAXA(ax, params, begin_time, end_time, timedelta(days=1))
+    # begin_time = datetime(2016, 2, 15, 5, 0, 0)
+    # end_time = datetime(2016, 5, 15, 5, 0, 0)
+    begin_time = datetime(2016, target_month, target_day, 5, 0, 0)
+    end_time = target_date + relativedelta(days=63)
+    Haya2.drawOrbitJAXA(ax, params, begin_time, end_time, relativedelta(days=1))
+    Ryugu.drawOrbitJAXA(ax, params, begin_time, end_time, relativedelta(days=1))
 
     # point
     # begin_time = datetime(2016, 1, 15, 5, 0, 0)
     # end_time = datetime(2016, 4, 15, 5, 0, 0)
-    Haya2.plotPointJAXA(ax, params, begin_time, end_time, timedelta(days=30))
-    EarthJAXA.plotPointJAXA(ax, params, begin_time, end_time, timedelta(days=30))
-    Ryugu.plotPointJAXA(ax, params, begin_time, end_time, timedelta(days=30))
+    Haya2.plotPointJAXA(ax, params, begin_time, end_time, relativedelta(months=1))
+    EarthJAXA.plotPointJAXA(ax, params, begin_time, end_time, relativedelta(months=1))
+    Ryugu.plotPointJAXA(ax, params, begin_time, end_time, relativedelta(months=1))
 
     # text date
     # begin_time = datetime(2016, 1, 15, 5, 0, 0)
     # end_time = datetime(2016, 4, 15, 5, 0, 0)
-    Haya2.textDateJAXA(ax, params, begin_time, end_time, timedelta(days=30))
-    Ryugu.textDateJAXA(ax, params, begin_time, end_time, timedelta(days=30))
+    Haya2.textDateJAXA(ax, params, begin_time, end_time, relativedelta(months=1))
+    Ryugu.textDateJAXA(ax, params, begin_time, end_time, relativedelta(months=1))
 
     # text angle
     # begin_time = datetime(2016, 2, 15, 5, 0, 0)
     # end_time = datetime(2016, 5, 15, 5, 0, 0)
-    Haya2.textAngleEVEJAXA(ax, params, begin_time, end_time, timedelta(days=30))
-    Ryugu.textAngleEVEJAXA(ax, params, begin_time, end_time, timedelta(days=30))
+    Haya2.textAngleEVEJAXA(ax, params, begin_time, end_time, relativedelta(months=1))
+    Ryugu.textAngleEVEJAXA(ax, params, begin_time, end_time, relativedelta(months=1))
 
     # ## JAXA.textAngleEVEJAXA(axisObj, paramsDic, begin_lp, end_lp[opt], days_interval[opt])
     # Haya2.textAngleEVEJAXA(ax, params, 365)
     # Ryugu.textAngleEVEJAXA(ax, params, 365)
 
-    Haya2.textDistanceFromSunJAXA(ax, params, begin_time, end_time, timedelta(days=30))
-    Ryugu.textDistanceFromSunJAXA(ax, params, begin_time, end_time, timedelta(days=30))
+    Haya2.textDistanceFromSunJAXA(ax, params, begin_time, end_time, relativedelta(months=1))
+    Ryugu.textDistanceFromSunJAXA(ax, params, begin_time, end_time, relativedelta(months=1))
 
 
     # fig.suptitle("Planets and Haya2 on {0:%Y-%m-%d}".format(target_date))
