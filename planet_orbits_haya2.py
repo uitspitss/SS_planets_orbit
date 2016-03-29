@@ -3,7 +3,7 @@
 
 import math
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
 from collections import OrderedDict
 import numpy as np
@@ -325,8 +325,8 @@ class Planet:
         self.r_xyl = []
 
         begin_time = datetime(2015,1,1, tzinfo=timezone.utc)
-        end_time = begin_time + timedelta(days=self.a**1.5*500)
-        interval_time = timedelta(days=self.a)
+        end_time = begin_time + relativedelta(days=self.a**1.5*500)
+        interval_time = relativedelta(days=self.a)
 
         target_time = begin_time
         while target_time <= end_time:
@@ -359,7 +359,7 @@ class Planet:
 
         begin_time = begin_time.replace(tzinfo=timezone.utc)
         end_time = begin_time if end_time==None else end_time.replace(tzinfo=timezone.utc)
-        interval_time = timedelta(days=1) if interval_time==None else interval_time
+        interval_time = relativedelta(days=1) if interval_time==None else interval_time
         target_time = begin_time
 
         while target_time <= end_time:
@@ -392,7 +392,7 @@ class Planet:
 
         begin_time = begin_time.replace(tzinfo=timezone.utc)
         end_time = begin_time if end_time==None else end_time.replace(tzinfo=timezone.utc)
-        interval_time = timedelta(days=1) if interval_time==None else interval_time
+        interval_time = relativedelta(days=1) if interval_time==None else interval_time
         target_time = begin_time
 
         while target_time <= end_time:
@@ -443,7 +443,7 @@ class Planet:
 
         begin_time = begin_time.replace(tzinfo=timezone.utc)
         end_time = begin_time if end_time==None else end_time.replace(tzinfo=timezone.utc)
-        interval_time = timedelta(days=1) if interval_time==None else interval_time
+        interval_time = relativedelta(days=1) if interval_time==None else interval_time
         target_time = begin_time
 
         while target_time <= end_time:
@@ -475,7 +475,7 @@ class Planet:
 
         begin_time = begin_time.replace(tzinfo=timezone.utc)
         end_time = begin_time if end_time==None else end_time.replace(tzinfo=timezone.utc)
-        interval_time = timedelta(days=1) if interval_time==None else interval_time
+        interval_time = relativedelta(days=1) if interval_time==None else interval_time
         target_time = begin_time
 
         while target_time <= end_time:
