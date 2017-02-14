@@ -1,13 +1,14 @@
 #python
 # -*- coding:utf-8 -*-
-# Time-stamp: <Wed Mar 02 12:28:01 JST 2016>
 
 import math
-import datetime
+from datetime import datetime, timezone
+from dateutil.relativedelta import relativedelta
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import lines
 from functools import singledispatch
+import argparse
 
 """
 DATA 1800AD - 2050AD equinox of J2000(JD2451545.0) from http://ssd.jpl.nasa.gov/txt/p_elem_t1.txt
@@ -320,13 +321,13 @@ class Planet:
         self.rl = []
         self.r_xyl = []
 
-        begin_date = datetime.date(1800,1,1)
-        end_date = datetime.date(2050,1,1)
+        begin_date = datetime(1800,1,1)
+        end_date = datetime(2050,1,1,)
         days_interval = 30                   # interval days
 
         count = 0
         while True:
-            day = begin_date + datetime.timedelta(days = count * days_interval)
+            day = begin_date + relativedelta(days = count * days_interval)
             if (end_date - day).days < 0: break
             jd = self.toJD(day) - 2451545.0 # J2000
             self.calc(jd, params)
@@ -360,7 +361,7 @@ class Planet:
 
         count = 0
         while True:
-            day = begin_date + datetime.timedelta(days = count * days_interval)
+            day = begin_date + relativedelta(days = count * days_interval)
             if (end_date - day).days < 0: break
             jd = self.toJD(day) - 2451545.0 # J2000
             self.calc(jd, params)
@@ -394,7 +395,7 @@ class Planet:
 
         count = 0
         while True:
-            day = begin_date + datetime.timedelta(days = count * days_interval)
+            day = begin_date + relativedelta(days = count * days_interval)
             if (end_date - day).days < 0: break
             jd = self.toJD(day) - 2451545.0 # J2000
             self.calc(jd, params)
@@ -446,7 +447,7 @@ class Planet:
 
         count = 0
         while True:
-            day = begin_date + datetime.timedelta(days = count * days_interval)
+            day = begin_date + relativedelta(days = count * days_interval)
             if (end_date - day).days < 0: break
             jd = self.toJD(day) - 2451545.0 # J2000
             self.calc(jd, params)
@@ -486,6 +487,13 @@ class Planet:
         u = b - a
         return np.linalg.norm(u * mag)
 
+    def distance2pointNomag(self, a, b):       # a,b: numpy array([x1,y1], [x2,y2])
+        u = b - a
+        return np.linalg.norm(u)
+
+    def distance2point3DNomag(self, a, b):       # a,b: numpy array([x1,y1], [x2,y2])
+        return np.sqrt(np.power(b - a, 2).sum())
+
     def angle2vector(self, a, b):           # a,b: vector (numpy)
         cos_ang = np.dot(a,b) / (np.linalg.norm(a) * np.linalg.norm(b))
         ang = math.acos(cos_ang)
@@ -498,9 +506,19 @@ def main():
               'phi': -8,
               'mag': 0.245/1.,
               'EVE': [0, 0],
-              'EVEday': datetime.date(2014, 3, 21)}
+              'EVEday': datetime(2014, 3, 20,
+                                 16, 57, 0,
+                                 tzinfo=timezone.utc)}
 
-    target_date = datetime.date(2016, 3, 15) # plot position on target_date
+    parser = argparse.ArgumentParser(description='This script plot planetary orbits of solar system')
+    parser.add_argument('target_date', help="require! target date e.g. yyyy-mm-dd")
+
+    args = parser.parse_args()
+    input_date = datetime.strptime(args.target_date, '%Y-%m-%d')
+    target_date = datetime(input_date.year,
+                           input_date.month,
+                           input_date.day,
+                           tzinfo=timezone.utc)
 
     ####### INNER ########
     params['inner'] = True
@@ -634,8 +652,16 @@ def main():
     Neptune.textAngleEVE(ax, params, target_date)
     Pluto.textAngleEVE(ax, params, target_date)
 
-    fig.suptitle("Planets on {0:%Y-%m-%d}".format(target_date))
-    fig.savefig("planets_on_{0:%Y-%m-%d}.png".format(target_date), dpi=300)
+    # print([Pluto.xl[0], Pluto.yl[0]])
+    # print([Earth.xl[0], Earth.yl[0]])
+
+    print(Pluto.distance2point3DNomag(np.array([Pluto.xl[0], Pluto.yl[0], Pluto.zl[0]]),
+                                      np.array([Earth.xl[0], Earth.yl[0], Earth.zl[0]])))
+
+    # plt.show()
+
+    fig.suptitle("Planetary Orbits at {0:%Y-%m-%d}".format(target_date))
+    fig.savefig("planetary_orbits_{0:%Y-%m-%d}.png".format(target_date), dpi=300)
 
     print("end")
 
