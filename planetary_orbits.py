@@ -662,8 +662,7 @@ def main():
 
     fig.suptitle("Planetary Orbits at {0:%Y-%m-%d}".format(target_date))
     fig.savefig("planetary_orbits_{0:%Y-%m-%d}.png".format(target_date), dpi=300)
-
-    print("end")
+    print("SAVED: planetary_orbits_{0:%Y-%m-%d}.png".format(target_date))
 
 
 if __name__ == '__main__':

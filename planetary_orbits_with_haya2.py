@@ -726,6 +726,7 @@ def main():
     target_date = datetime(input_date.year,
                            input_date.month,
                            input_date.day,
+                           5, 0, 0, # Haya2 and Ryugu data is 5:00AM(UTC)
                            tzinfo=timezone.utc)
 
     ####### INNER ########
@@ -788,48 +789,34 @@ def main():
     EarthJAXA = JAXA("EarthJAXA", "haya2_orbit_jaxa.txt")
 
     # orbit
-    # begin_time = datetime(2016, 2, 15, 5, 0, 0)
-    # end_time = datetime(2016, 5, 15, 5, 0, 0)
     begin_time = target_date
     end_time = target_date + relativedelta(days=63)
     Haya2.drawOrbitJAXA(ax, params, begin_time, end_time, relativedelta(days=1))
     Ryugu.drawOrbitJAXA(ax, params, begin_time, end_time, relativedelta(days=1))
 
     # point
-    # begin_time = datetime(2016, 1, 15, 5, 0, 0)
-    # end_time = datetime(2016, 4, 15, 5, 0, 0)
     Haya2.plotPointJAXA(ax, params, begin_time, end_time, relativedelta(months=1))
     EarthJAXA.plotPointJAXA(ax, params, begin_time, end_time, relativedelta(months=1))
     Ryugu.plotPointJAXA(ax, params, begin_time, end_time, relativedelta(months=1))
 
     # text date
-    # begin_time = datetime(2016, 1, 15, 5, 0, 0)
-    # end_time = datetime(2016, 4, 15, 5, 0, 0)
     Haya2.textDateJAXA(ax, params, begin_time, end_time, relativedelta(months=1))
     Ryugu.textDateJAXA(ax, params, begin_time, end_time, relativedelta(months=1))
 
     # text angle
-    # begin_time = datetime(2016, 2, 15, 5, 0, 0)
-    # end_time = datetime(2016, 5, 15, 5, 0, 0)
     Haya2.textAngleEVEJAXA(ax, params, begin_time, end_time, relativedelta(months=1))
     Ryugu.textAngleEVEJAXA(ax, params, begin_time, end_time, relativedelta(months=1))
 
-    # ## JAXA.textAngleEVEJAXA(axisObj, paramsDic, begin_lp, end_lp[opt], days_interval[opt])
-    # Haya2.textAngleEVEJAXA(ax, params, 365)
-    # Ryugu.textAngleEVEJAXA(ax, params, 365)
-
+    ## JAXA.textAngleEVEJAXA(axisObj, paramsDic, begin_lp, end_lp[opt], days_interval[opt])
     Haya2.textDistanceFromSunJAXA(ax, params, begin_time, end_time, relativedelta(months=1))
     Ryugu.textDistanceFromSunJAXA(ax, params, begin_time, end_time, relativedelta(months=1))
 
 
     # plt.show()
 
-    # fig.suptitle("Planets and Haya2 on {0:%Y-%m-%d}".format(target_date))
-    # fig.savefig("planets_and_Haya2_on_{0:%Y-%m-%d}.png".format(target_date), dpi=300)
-
-    fig.suptitle("Earth and Haya2 at {:%Y-%m-%d}".format(target_date))
-    fig.savefig("Earth_and_Haya2_{:%Y-%m-%d}.png".format(target_date), dpi=300)
-    print("end")
+    fig.suptitle("Planets and Haya2 at {0:%Y-%m-%d}".format(target_date))
+    fig.savefig("planets_and_Haya2_{0:%Y-%m-%d}.png".format(target_date), dpi=300)
+    print("SAVED: planets_and_Haya2_{0:%Y-%m-%d}.png".format(target_date))
 
 
 if __name__ == '__main__':
